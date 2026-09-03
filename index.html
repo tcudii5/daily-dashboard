@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0f1115" />
+<title>Daily — Thomas</title>
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Daily" />
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel-2:#1e222b; --line:#2a2f3a;
+    --text:#e8eaed; --dim:#9aa1ad; --faint:#6b7280;
+    --accent:#5eea9f; --accent-dim:#1f3a2c;
+    --warn:#ff6b6b; --gold:#ffd166; --blue:#6ea8fe;
+    --radius:16px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--text);
+    font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    padding:max(14px,env(safe-area-inset-top)) 14px calc(84px + env(safe-area-inset-bottom));
+    max-width:640px; margin:0 auto; min-height:100vh;
+  }
+  h1,h2,h3{margin:0;font-weight:700}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  input,select{font-family:inherit;font-size:16px}
+
+  header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+  .hi{font-size:22px}
+  .date{color:var(--dim);font-size:13px;margin-top:2px}
+  .verse{color:var(--faint);font-size:12.5px;font-style:italic;margin-top:6px;max-width:80%}
+
+  .tabs{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--panel);
+    border-top:1px solid var(--line);padding:8px 8px calc(8px + env(safe-area-inset-bottom));z-index:50}
+  .tabs button{flex:1;color:var(--dim);font-size:11px;display:flex;flex-direction:column;
+    align-items:center;gap:3px;padding:6px 0;border-radius:12px}
+  .tabs button.on{color:var(--accent);background:var(--panel-2)}
+  .tabs .ic{font-size:19px;line-height:1}
+
+  section{display:none}
+  section.on{display:block}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:14px;margin:12px 0}
+  .card h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin-bottom:10px}
+
+  /* rituals */
+  .rituals{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .ritual{background:var(--panel-2);border:1px solid var(--line);border-radius:14px;padding:12px;
+    display:flex;flex-direction:column;gap:6px;text-align:left;transition:.12s}
+  .ritual .top{display:flex;justify-content:space-between;align-items:center}
+  .ritual .name{font-weight:600}
+  .ritual .streak{font-size:12px;color:var(--gold)}
+  .ritual .box{width:22px;height:22px;border-radius:7px;border:2px solid var(--faint);flex:none;
+    display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--bg)}
+  .ritual.done{background:var(--accent-dim);border-color:var(--accent)}
+  .ritual.done .box{background:var(--accent);border-color:var(--accent)}
+  .ritual.done .name{color:var(--accent)}
+
+  /* tasks */
+  .addrow{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+  .addrow input[type=text]{flex:1 1 100%;background:var(--panel-2);border:1px solid var(--line);
+    color:var(--text);border-radius:12px;padding:12px}
+  .addrow input[type=time],.addrow select{background:var(--panel-2);border:1px solid var(--line);
+    color:var(--text);border-radius:12px;padding:11px}
+  .addrow .go{background:var(--accent);color:#06281a;font-weight:700;border-radius:12px;padding:12px 16px}
+  .seg{display:flex;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .seg button{padding:10px 14px;color:var(--dim);font-size:13px}
+  .seg button.on{background:var(--accent);color:#06281a;font-weight:700}
+
+  .task{display:flex;align-items:center;gap:10px;padding:11px 4px;border-bottom:1px solid var(--line)}
+  .task:last-child{border-bottom:none}
+  .task .box{width:22px;height:22px;border-radius:7px;border:2px solid var(--faint);flex:none;
+    display:flex;align-items:center;justify-content:center;font-size:14px}
+  .task.done .box{background:var(--accent);border-color:var(--accent);color:#06281a}
+  .task.done .label{text-decoration:line-through;color:var(--faint)}
+  .task .label{flex:1;min-width:0}
+  .task .time{font-size:12px;color:var(--blue);font-variant-numeric:tabular-nums}
+  .task.overdue .time{color:var(--warn)}
+  .task .del{color:var(--faint);font-size:18px;padding:4px 6px}
+  .empty{color:var(--faint);font-size:14px;text-align:center;padding:18px 0}
+
+  /* money */
+  .stat-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+  .stat{background:var(--panel-2);border:1px solid var(--line);border-radius:14px;padding:12px}
+  .stat .k{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em}
+  .stat .v{font-size:22px;font-weight:700;margin-top:3px;font-variant-numeric:tabular-nums}
+  .v.spent{color:var(--warn)} .v.earned{color:var(--accent)} .v.net-pos{color:var(--accent)} .v.net-neg{color:var(--warn)}
+  .bar{height:10px;background:var(--panel-2);border-radius:999px;overflow:hidden;border:1px solid var(--line);margin-top:8px}
+  .bar > i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--blue))}
+  .goalline{display:flex;justify-content:space-between;font-size:12px;color:var(--dim);margin-top:6px}
+
+  .ent{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--line)}
+  .ent:last-child{border-bottom:none}
+  .ent .dot{width:8px;height:8px;border-radius:999px;flex:none}
+  .ent .dot.s{background:var(--warn)} .ent .dot.e{background:var(--accent)}
+  .ent .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ent .d{font-size:11px;color:var(--faint)}
+  .ent .a{font-weight:700;font-variant-numeric:tabular-nums}
+  .ent .a.s{color:var(--warn)} .ent .a.e{color:var(--accent)}
+  .ent .del{color:var(--faint);font-size:16px;padding:2px 4px}
+
+  label.fld{display:block;margin:10px 0}
+  label.fld span{display:block;font-size:12px;color:var(--dim);margin-bottom:5px}
+  label.fld input{width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    border-radius:12px;padding:11px}
+  .btn{display:block;width:100%;text-align:center;background:var(--panel-2);border:1px solid var(--line);
+    color:var(--text);border-radius:12px;padding:12px;margin-top:8px;font-weight:600}
+  .btn.danger{color:var(--warn);border-color:#4a2626}
+  .btn.primary{background:var(--accent);color:#06281a}
+  .mut{color:var(--faint);font-size:12px;margin-top:8px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+  .chip{background:var(--panel-2);border:1px solid var(--line);border-radius:999px;padding:6px 10px;font-size:13px;display:flex;gap:6px;align-items:center}
+  .chip button{color:var(--faint)}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1 class="hi" id="greeting">Hey Thomas</h1>
+    <div class="date" id="today"></div>
+    <div class="verse" id="verse"></div>
+  </div>
+</header>
+
+<!-- ================= TODAY ================= -->
+<section id="tab-today" class="on">
+  <div class="card">
+    <h2>Daily rituals</h2>
+    <div class="rituals" id="rituals"></div>
+  </div>
+
+  <div class="card">
+    <h2 id="taskHead">Today's list</h2>
+    <div class="addrow">
+      <input type="text" id="taskText" placeholder="What needs doing? (e.g. Call supplier)" />
+      <input type="time" id="taskTime" />
+      <div class="seg" id="daySeg">
+        <button data-day="0" class="on">Today</button>
+        <button data-day="1">Tomorrow</button>
+      </div>
+      <button class="go" id="taskAdd">Add</button>
+    </div>
+    <div id="taskList"></div>
+  </div>
+</section>
+
+<!-- ================= MONEY ================= -->
+<section id="tab-money">
+  <div class="card">
+    <h2>This month</h2>
+    <div class="stat-row">
+      <div class="stat"><div class="k">Earned</div><div class="v earned" id="mEarned">$0</div></div>
+      <div class="stat"><div class="k">Spent</div><div class="v spent" id="mSpent">$0</div></div>
+      <div class="stat"><div class="k">Net</div><div class="v" id="mNet">$0</div></div>
+      <div class="stat"><div class="k">Spent today</div><div class="v spent" id="dSpent">$0</div></div>
+    </div>
+    <div class="k" style="font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em">Earning goal</div>
+    <div class="bar"><i id="goalBar" style="width:0%"></i></div>
+    <div class="goalline"><span id="goalNow">$0</span><span id="goalTarget">$0 goal</span></div>
+  </div>
+
+  <div class="card">
+    <h2>Log an entry</h2>
+    <div class="addrow">
+      <div class="seg" id="entSeg">
+        <button data-type="spent" class="on">Spent</button>
+        <button data-type="earned">Earned</button>
+      </div>
+      <input type="text" id="entNote" placeholder="On what? (e.g. Gas, Client payment)" />
+      <input type="text" id="entAmt" inputmode="decimal" placeholder="$0.00" style="flex:1 1 auto" />
+      <button class="go" id="entAdd">Add</button>
+    </div>
+    <div id="entList"></div>
+  </div>
+</section>
+
+<!-- ================= ME ================= -->
+<section id="tab-me">
+  <div class="card">
+    <h2>Setup</h2>
+    <label class="fld"><span>Your name</span><input type="text" id="setName" /></label>
+    <label class="fld"><span>Monthly earning goal ($)</span><input type="text" id="setGoal" inputmode="decimal" /></label>
+    <button class="btn primary" id="saveSetup">Save</button>
+  </div>
+
+  <div class="card">
+    <h2>Rituals</h2>
+    <div class="addrow">
+      <input type="text" id="newRitual" placeholder="Add a ritual (e.g. Meditate)" />
+      <button class="go" id="addRitual">Add</button>
+    </div>
+    <div class="chips" id="ritualChips"></div>
+  </div>
+
+  <div class="card">
+    <h2>Streak records</h2>
+    <div id="records"></div>
+  </div>
+
+  <div class="card">
+    <h2>Backup</h2>
+    <p class="mut">Everything is stored on this device only. Export a copy before clearing browser data or switching phones.</p>
+    <button class="btn" id="exportBtn">Export data (.json)</button>
+    <button class="btn" id="importBtn">Import data</button>
+    <input type="file" id="importFile" accept="application/json" hidden />
+    <button class="btn danger" id="wipeBtn">Erase everything</button>
+    <p class="mut" id="ver"></p>
+  </div>
+</section>
+
+<nav class="tabs" id="tabs">
+  <button data-tab="today" class="on"><span class="ic">✓</span>Today</button>
+  <button data-tab="money"><span class="ic">$</span>Money</button>
+  <button data-tab="me"><span class="ic">◎</span>Me</button>
+</nav>
+
+<script>
+const KEY = "lifeboard.v1";
+const VERSES = [
+  ["Commit to the LORD whatever you do, and he will establish your plans.","Proverbs 16:3"],
+  ["Whatever you do, work at it with all your heart, as working for the Lord.","Colossians 3:23"],
+  ["The plans of the diligent lead to profit as surely as haste leads to poverty.","Proverbs 21:5"],
+  ["I can do all this through him who gives me strength.","Philippians 4:13"],
+  ["Let us not become weary in doing good.","Galatians 6:9"],
+  ["This is the day the LORD has made; let us rejoice and be glad in it.","Psalm 118:24"],
+  ["Do you see someone skilled in their work? They will serve before kings.","Proverbs 22:29"],
+];
+const DEFAULT = {
+  name:"Thomas",
+  goal:5000,
+  rituals:["Gym","Read Bible","Run","Prayer"],
+  ritualLog:{},      // "YYYY-MM-DD": ["Gym","Run"]
+  tasks:[],          // {id,text,time,date,done}
+  entries:[],        // {id,type:'spent'|'earned',amount,note,ts}
+};
+
+let S = load();
+function load(){
+  try{ return Object.assign(structuredClone(DEFAULT), JSON.parse(localStorage.getItem(KEY)||"{}")); }
+  catch(e){ return structuredClone(DEFAULT); }
+}
+function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
+const uid = () => Math.random().toString(36).slice(2,10);
+const todayKey = (off=0) => { const d=new Date(); d.setDate(d.getDate()+off); return d.toISOString().slice(0,10); };
+const money = n => (n<0?"-$":"$") + Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:0,maximumFractionDigits:2});
+
+/* ---------- header ---------- */
+function paintHeader(){
+  const h = new Date().getHours();
+  const part = h<12?"Good morning":h<18?"Good afternoon":"Good evening";
+  document.getElementById("greeting").textContent = `${part}, ${S.name||"friend"}`;
+  document.getElementById("today").textContent = new Date().toLocaleDateString("en-US",
+    {weekday:"long",month:"long",day:"numeric"});
+  const v = VERSES[new Date().getDate() % VERSES.length];
+  document.getElementById("verse").textContent = `"${v[0]}" — ${v[1]}`;
+}
+
+/* ---------- rituals ---------- */
+function streak(name){
+  let n=0;
+  for(let i=0;i<400;i++){
+    const k=todayKey(-i);
+    const hit=(S.ritualLog[k]||[]).includes(name);
+    if(hit){ n++; }
+    else if(i===0){ continue; }      // today not done yet — keep counting from yesterday
+    else break;
+  }
+  return n;
+}
+function bestStreak(name){
+  let best=0,cur=0,prev=null;
+  const days=Object.keys(S.ritualLog).filter(k=>(S.ritualLog[k]||[]).includes(name)).sort();
+  for(const d of days){
+    if(prev){
+      const gap=(new Date(d)-new Date(prev))/86400000;
+      cur = gap===1 ? cur+1 : 1;
+    } else cur=1;
+    best=Math.max(best,cur); prev=d;
+  }
+  return best;
+}
+function paintRituals(){
+  const wrap=document.getElementById("rituals"); wrap.innerHTML="";
+  const k=todayKey(), done=S.ritualLog[k]||[];
+  S.rituals.forEach(name=>{
+    const on=done.includes(name);
+    const b=document.createElement("button");
+    b.className="ritual"+(on?" done":"");
+    b.innerHTML=`<div class="top"><span class="name">${esc(name)}</span><span class="box">${on?"✓":""}</span></div>
+      <span class="streak">${streak(name)>0?"🔥 "+streak(name)+" day"+(streak(name)>1?"s":""):"start today"}</span>`;
+    b.onclick=()=>{
+      const arr=S.ritualLog[k]||(S.ritualLog[k]=[]);
+      const i=arr.indexOf(name);
+      i>=0?arr.splice(i,1):arr.push(name);
+      if(!arr.length) delete S.ritualLog[k];
+      save(); paintRituals();
+    };
+    wrap.appendChild(b);
+  });
+}
+
+/* ---------- tasks ---------- */
+let addDay=0;
+function paintTasks(){
+  const list=document.getElementById("taskList"); list.innerHTML="";
+  document.getElementById("taskHead").textContent = addDay===0 ? "Today's list" : "Tomorrow's list";
+  const day=todayKey(addDay);
+  const now=new Date().toTimeString().slice(0,5);
+  const rows=S.tasks.filter(t=>t.date===day).sort((a,b)=>{
+    if(a.done!==b.done) return a.done?1:-1;
+    if(!!a.time!==!!b.time) return a.time?-1:1;
+    return (a.time||"").localeCompare(b.time||"");
+  });
+  if(!rows.length){ list.innerHTML='<div class="empty">Nothing here yet. Add the first thing.</div>'; return; }
+  rows.forEach(t=>{
+    const row=document.createElement("div");
+    const overdue=!t.done && t.time && addDay===0 && t.time<now;
+    row.className="task"+(t.done?" done":"")+(overdue?" overdue":"");
+    row.innerHTML=`<button class="box">${t.done?"✓":""}</button>
+      <span class="label">${esc(t.text)}</span>
+      ${t.time?`<span class="time">${fmtTime(t.time)}</span>`:""}
+      <button class="del">✕</button>`;
+    row.querySelector(".box").onclick=()=>{ t.done=!t.done; save(); paintTasks(); };
+    row.querySelector(".del").onclick=()=>{ S.tasks=S.tasks.filter(x=>x.id!==t.id); save(); paintTasks(); };
+    list.appendChild(row);
+  });
+}
+function fmtTime(hm){
+  let [h,m]=hm.split(":").map(Number);
+  const ap=h<12?"AM":"PM"; h=h%12||12;
+  return `${h}:${String(m).padStart(2,"0")} ${ap}`;
+}
+function addTask(){
+  const el=document.getElementById("taskText"), t=el.value.trim();
+  if(!t) return;
+  S.tasks.push({id:uid(),text:t,time:document.getElementById("taskTime").value||"",date:todayKey(addDay),done:false});
+  el.value=""; document.getElementById("taskTime").value="";
+  save(); paintTasks();
+}
+
+/* ---------- money ---------- */
+let entType="spent";
+function monthEntries(){
+  const p=new Date().toISOString().slice(0,7);
+  return S.entries.filter(e=>new Date(e.ts).toISOString().slice(0,7)===p);
+}
+function paintMoney(){
+  const me=monthEntries();
+  const earned=me.filter(e=>e.type==="earned").reduce((s,e)=>s+e.amount,0);
+  const spent=me.filter(e=>e.type==="spent").reduce((s,e)=>s+e.amount,0);
+  const net=earned-spent;
+  const tk=todayKey();
+  const dSpent=S.entries.filter(e=>e.type==="spent"&&new Date(e.ts).toISOString().slice(0,10)===tk)
+    .reduce((s,e)=>s+e.amount,0);
+  document.getElementById("mEarned").textContent=money(earned);
+  document.getElementById("mSpent").textContent=money(spent);
+  document.getElementById("dSpent").textContent=money(dSpent);
+  const nn=document.getElementById("mNet");
+  nn.textContent=money(net); nn.className="v "+(net>=0?"net-pos":"net-neg");
+  const pct=S.goal>0?Math.min(100,earned/S.goal*100):0;
+  document.getElementById("goalBar").style.width=pct+"%";
+  document.getElementById("goalNow").textContent=money(earned)+"  ("+Math.round(pct)+"%)";
+  document.getElementById("goalTarget").textContent=money(S.goal)+" goal";
+
+  const list=document.getElementById("entList"); list.innerHTML="";
+  if(!me.length){ list.innerHTML='<div class="empty">No entries this month yet.</div>'; return; }
+  me.slice().sort((a,b)=>b.ts-a.ts).forEach(e=>{
+    const r=document.createElement("div"); r.className="ent";
+    const s=e.type==="spent";
+    r.innerHTML=`<span class="dot ${s?'s':'e'}"></span>
+      <span class="n">${esc(e.note||(s?'Spending':'Income'))}<span class="d"> · ${new Date(e.ts).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span></span>
+      <span class="a ${s?'s':'e'}">${s?'-':'+'}${money(e.amount)}</span>
+      <button class="del">✕</button>`;
+    r.querySelector(".del").onclick=()=>{ S.entries=S.entries.filter(x=>x.id!==e.id); save(); paintMoney(); };
+    list.appendChild(r);
+  });
+}
+function addEntry(){
+  const amt=parseFloat(String(document.getElementById("entAmt").value).replace(/[^0-9.]/g,""));
+  if(!amt||amt<=0) return;
+  S.entries.push({id:uid(),type:entType,amount:amt,
+    note:document.getElementById("entNote").value.trim(),ts:Date.now()});
+  document.getElementById("entAmt").value=""; document.getElementById("entNote").value="";
+  save(); paintMoney();
+}
+
+/* ---------- me ---------- */
+function paintMe(){
+  document.getElementById("setName").value=S.name||"";
+  document.getElementById("setGoal").value=S.goal||"";
+  const chips=document.getElementById("ritualChips"); chips.innerHTML="";
+  S.rituals.forEach(name=>{
+    const c=document.createElement("span"); c.className="chip";
+    c.innerHTML=`${esc(name)} <button>✕</button>`;
+    c.querySelector("button").onclick=()=>{
+      S.rituals=S.rituals.filter(x=>x!==name); save(); paintRituals(); paintMe();
+    };
+    chips.appendChild(c);
+  });
+  const rec=document.getElementById("records"); rec.innerHTML="";
+  S.rituals.forEach(name=>{
+    const r=document.createElement("div"); r.className="ent";
+    r.innerHTML=`<span class="n">${esc(name)}</span><span class="a">🔥 ${bestStreak(name)} best · ${streak(name)} now</span>`;
+    rec.appendChild(r);
+  });
+  document.getElementById("ver").textContent="Daily · local build · data key "+KEY;
+}
+
+/* ---------- utils ---------- */
+function esc(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+/* ---------- wiring ---------- */
+document.getElementById("tabs").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("on",x===b));
+  document.querySelectorAll("section").forEach(s=>s.classList.toggle("on",s.id==="tab-"+b.dataset.tab));
+});
+document.getElementById("daySeg").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  addDay=+b.dataset.day;
+  document.querySelectorAll("#daySeg button").forEach(x=>x.classList.toggle("on",x===b));
+  paintTasks();
+});
+document.getElementById("entSeg").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  entType=b.dataset.type;
+  document.querySelectorAll("#entSeg button").forEach(x=>x.classList.toggle("on",x===b));
+});
+document.getElementById("taskAdd").onclick=addTask;
+document.getElementById("taskText").addEventListener("keydown",e=>{ if(e.key==="Enter") addTask(); });
+document.getElementById("entAdd").onclick=addEntry;
+document.getElementById("entAmt").addEventListener("keydown",e=>{ if(e.key==="Enter") addEntry(); });
+document.getElementById("saveSetup").onclick=()=>{
+  S.name=document.getElementById("setName").value.trim()||"Thomas";
+  S.goal=parseFloat(String(document.getElementById("setGoal").value).replace(/[^0-9.]/g,""))||0;
+  save(); paintHeader(); paintMoney(); alert("Saved.");
+};
+document.getElementById("addRitual").onclick=()=>{
+  const el=document.getElementById("newRitual"), v=el.value.trim();
+  if(v && !S.rituals.includes(v)){ S.rituals.push(v); el.value=""; save(); paintRituals(); paintMe(); }
+};
+document.getElementById("exportBtn").onclick=()=>{
+  const blob=new Blob([JSON.stringify(S,null,2)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="daily-backup-"+todayKey()+".json"; a.click();
+};
+document.getElementById("importBtn").onclick=()=>document.getElementById("importFile").click();
+document.getElementById("importFile").onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{ S=Object.assign(structuredClone(DEFAULT),JSON.parse(r.result)); save(); render(); alert("Imported."); }
+    catch(err){ alert("That file could not be read."); } };
+  r.readAsText(f);
+};
+document.getElementById("wipeBtn").onclick=()=>{
+  if(confirm("Erase all tasks, rituals history and finances on this device?")){
+    localStorage.removeItem(KEY); S=load(); render();
+  }
+};
+
+function render(){ paintHeader(); paintRituals(); paintTasks(); paintMoney(); paintMe(); }
+render();
+
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js").catch(()=>{});
+}
+</script>
+</body>
+</html>
