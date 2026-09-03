@@ -28,5 +28,11 @@ python3 -m http.server 8000
 
 ## Deploy
 
-Hosted on Netlify from this repo. Any push to `main` redeploys. Config in
-`netlify.toml` (publishes the repo root, no build step).
+**Live:** https://tcudii5.github.io/daily-dashboard/
+
+Hosted on GitHub Pages from `main` (repo root, no build step). Every push to
+`main` redeploys automatically — usually live within a minute.
+
+`netlify.toml` is kept for the connected `daily-thomas` Netlify project, which
+is a dormant backup (Netlify build credits were exhausted at setup time; it
+will deploy again once the billing cycle resets).
